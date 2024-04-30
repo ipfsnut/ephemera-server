@@ -16,9 +16,14 @@ const getPinnedFiles = async () => {
   return pinnedFiles.map((file) => file.cid.toString());
 };
 
+const unpinFile = async (cid) => {
+  await ipfs.pin.rm(cid);
+};
+
 module.exports = {
   addFileToIPFS,
   pinFileToIPFS,
   getPinnedFiles,
+  unpinFile,
   ipfs,
 };
