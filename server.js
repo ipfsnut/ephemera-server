@@ -1,63 +1,29 @@
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const ipfsClient = require("ipfs-http-client");
+require = require('exports');
+const express = require('express');
+const path = require('path');
+const ipfsClient = require('ipfs-http-client');
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
 
 // Configure IPFS client
 const ipfs = ipfsClient.create({
-  host: "localhost",
-  port: 5001,
-  protocol: "http",
+  host: 'localhost', // Replace with the appropriate IPFS node IP/host
+  port: 5001, // Replace with the appropriate IPFS node port
+  protocol: 'http'
 });
 
 // Serve static files from the uploads directory
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Import utility functions from utils/ipfs.js
-const { addFileToIPFS, pinFileToIPFS, getPinnedFiles, unpinFile } = require("./utils/ipfs");
+// Import IPFS routes
+const ipfsRoutes = require('./routes/routes');
 
-// Route for handling file uploads
-app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).send("No file uploaded");
-    }
+// Mount IPFS routes
+app.use('/ipfs', ipfsRoutes);
 
-    const cid = await addFileToIPFS(file.buffer);
-    await pinFileToIPFS(cid);
-    res.send(`File uploaded and pinned to IPFS with CID: ${cid}`);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error uploading and pinning file");
-  }
-});
-
-// Route for retrieving pinned files
-app.get("/pinned-files", async (req, res) => {
-  try {
-    const cids = await getPinnedFiles();
-    res.json(cids);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error retrieving pinned files");
-  }
-});
-
-// Route for unpinning a file
-app.delete("/unpin/:cid", async (req, res) => {
-  try {
-    const { cid } = req.params;
-    await unpinFile(cid);
-    res.send(`File with CID ${cid} unpinned from IPFS`);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(`Error unpinning file with CID ${cid}`);
-  }
-});
+// Pass the ipfs instance to the utils/ipfs.js module (if needed)
+const { addFileToIPFS, pinFileToIPFS, getPinnedFiles, unpinFile } = require('./utils/ipfs');
+module.exports = { ipfs, addFileToIPFS, pinFileToIPFS, getPinnedFiles, unpinFile };
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

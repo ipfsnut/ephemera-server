@@ -1,20 +1,16 @@
-const axios = require('axios');
+const ipfsClient = require('ipfs-http-client');
 
-const ipfsApiUrl = 'http://165.22.184.42:5001/api/v0';
+// Configure IPFS client
+const ipfs = ipfsClient.create({
+  host: 'localhost', // Replace with the appropriate IPFS node IP/host
+  port: 5001, // Replace with the appropriate IPFS node port
+  protocol: 'http'
+});
 
 const addFileToIPFS = async (fileBuffer) => {
   try {
-    const formData = new FormData();
-    formData.append('file', fileBuffer);
-
-    const response = await axios.post(`${ipfsApiUrl}/add`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    const cid = response.data.Hash;
-    return cid;
+    const { cid } = await ipfs.add(fileBuffer);
+    return cid.toString();
   } catch (error) {
     console.error('Error adding file to IPFS:', error);
     throw error;
@@ -23,7 +19,7 @@ const addFileToIPFS = async (fileBuffer) => {
 
 const pinFileToIPFS = async (cid) => {
   try {
-    await axios.post(`${ipfsApiUrl}/pin/add?arg=${cid}`);
+    await ipfs.pin.add(cid);
   } catch (error) {
     console.error('Error pinning file to IPFS:', error);
     throw error;
@@ -32,9 +28,8 @@ const pinFileToIPFS = async (cid) => {
 
 const getPinnedFiles = async () => {
   try {
-    const response = await axios.post(`${ipfsApiUrl}/pin/ls`);
-    const pinnedFiles = response.data.Keys;
-    return pinnedFiles;
+    const pinnedFiles = await ipfs.pin.ls();
+    return pinnedFiles.map(({ hash }) => hash.toString());
   } catch (error) {
     console.error('Error retrieving pinned files:', error);
     throw error;
@@ -43,7 +38,7 @@ const getPinnedFiles = async () => {
 
 const unpinFile = async (cid) => {
   try {
-    await axios.post(`${ipfsApiUrl}/pin/rm?arg=${cid}`);
+    await ipfs.pin.rm(cid);
   } catch (error) {
     console.error('Error unpinning file from IPFS:', error);
     throw error;
@@ -55,4 +50,5 @@ module.exports = {
   pinFileToIPFS,
   getPinnedFiles,
   unpinFile,
+  ipfs // Export the ipfs instance if needed elsewhere
 };
